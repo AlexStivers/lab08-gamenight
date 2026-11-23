@@ -18,6 +18,28 @@ string projectFolder = Path.GetFullPath(
     Path.Combine(AppContext.BaseDirectory, "..", "..", ".."));
 Directory.SetCurrentDirectory(projectFolder);
 
+Console.WriteLine("=== GAME NIGHT LEADERBOARD ===");
+
+// Part 3 (top): The History: read past nights from history.txt and determine tonight's night number.
+string[] historyLines = File.ReadAllLines(HISTORY_FILE);
+if (historyLines.Length == 0)
+{
+    Console.WriteLine("No nights played yet.");
+}
+else
+{
+    Console.WriteLine($"Nights played: {historyLines.Length}");
+    // foreach: every recorded night line is printed in order without needing index control
+    foreach (string line in historyLines)
+    {
+        Console.WriteLine($"  {line}");
+    }
+}
+
+int tonightNumber = historyLines.Length + 1;
+Console.WriteLine($"Tonight is Night {tonightNumber}.");
+Console.WriteLine();
+
 // Part 1: The Standings - read player names and points, print the table, leader, and season total.
 string[] players = File.ReadAllLines(PLAYERS_FILE);
 string[] points = File.ReadAllLines(POINTS_FILE);
@@ -35,6 +57,44 @@ Console.WriteLine($"Leader: {players[leader]} with {points[leader]}");
 
 int seasonTotal = TotalPoints(points);
 Console.WriteLine($"Season total: {seasonTotal}");
+
+// Part 2: Game Night - collect valid nightly scores, update season totals, name tonight's winner, and save.
+int bestTonight = -1;
+string winnerTonight = "";
+
+// for: each player's nightly score must be paired with their name and total at index i.
+for (int i = 0; i < players.Length; i++)
+{
+    Console.Write($"Points tonight for {players[i]}: ");
+    int tonight = Convert.ToInt32(Console.ReadLine());
+
+    //while: input validation repeats an unknown number of times until the score is in range.
+    while (tonight < 0 || tonight > MAX_POINTS)
+    {
+        Console.WriteLine($"Points must be from 0 to {MAX_POINTS}.");
+        Console.Write($"Points tonight for {players[i]}: ");
+        tonight = Convert.ToInt32(Console.ReadLine());
+    }
+
+    int season = Convert.ToInt32(points[i]) + tonight;
+    points[i] = season.ToString();
+
+    if (tonight > bestTonight)
+    {
+        bestTonight = tonight;
+        winnerTonight = players[i];
+    }
+}
+
+Console.WriteLine($"Tonight's winner: {winnerTonight} with {bestTonight}");
+
+File.WriteAllLines(POINTS_FILE, points);
+Console.WriteLine("Saved points.txt.");
+
+// Part 3 (bottom): The History: build tonight's history line and append it to history.txt.
+string[] entry = { HistoryEntry(tonightNumber, winnerTonight, bestTonight) };
+File.AppendAllLines(HISTORY_FILE, entry);
+Console.WriteLine($"Added to history.txt: {entry[0]}");
 
 // Hands back the index of the highest score in the points array.
 static int LeaderIndex(string[] points)
@@ -68,4 +128,10 @@ static int TotalPoints(string[] points)
     }
 
     return total;
+}
+
+// Hands back the formatted history line for a completed game night.
+static string HistoryEntry(int night, string winner, int points)
+{
+    return $"Night {night}: {winner} won with {points} points";
 }
